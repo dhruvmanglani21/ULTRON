@@ -1,0 +1,24 @@
+{
+  "name": "ultron-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "U.L.T.R.O.N. \u2014 Windows voice assistant with ElevenLabs, local app controls, dictation and WhatsApp drafts",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "node build.cjs",
+    "test": "node --test tests/*.test.cjs"
+  },
+  "dependencies": {
+    "@elevenlabs/client": "1.36.0",
+    "lucide-react": "1.31.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6"
+  },
+  "devDependencies": {
+    "electron": "45.3.1",
+    "esbuild": "0.28.2"
+  },
+  "license": "MIT",
+  "author": "Dhruv Manglani"
+}

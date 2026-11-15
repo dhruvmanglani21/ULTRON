@@ -1,0 +1,4 @@
+'use strict';
+const readDraftScript=String.raw`(()=>{const e=document.querySelector('footer [contenteditable="true"][role="textbox"]');return e?{text:e.innerText.replace(/\u00a0/g,' ').replace(/\r\n/g,'\n').trim(),ready:true}: {ready:false};})()`;
+function sendDraftScript(message){const expected=String(message).replace(/\r\n/g,'\n').trim();return String.raw`(()=>{const expected=${JSON.stringify(expected)};const e=document.querySelector('footer [contenteditable="true"][role="textbox"]');if(!e||e.innerText.replace(/\u00a0/g,' ').replace(/\r\n/g,'\n').trim()!==expected)return {clicked:false};const buttons=[...document.querySelectorAll('footer button,footer [role="button"]')];const b=buttons.find(b=>/^(send|send message)$/i.test(b.getAttribute('aria-label')||b.getAttribute('title')||''));if(!b||b.disabled||b.getAttribute('aria-disabled')==='true')return {clicked:false};b.click();return {clicked:true};})()`;}
+module.exports={readDraftScript,sendDraftScript};
