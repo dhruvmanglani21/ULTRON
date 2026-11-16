@@ -11,6 +11,16 @@ export function voiceErrorMessage(error: unknown): string {
   return safe || "The live voice link closed unexpectedly.";
 }
 
+export function isDurationEnd(details:any):boolean {
+  const text=[details?.message,details?.closeReason,details?.context?.type].filter(x=>typeof x==='string').join(' ');
+  if(/quota|credit|payment|subscription|permission|unauthori[sz]ed|invalid.*key/i.test(text))return false;
+  return /max(?:imum)?[_ -]?(?:conversation[_ -]?)?duration|duration[_ -]exceeded|conversation has exceeded maximum duration/i.test(text);
+}
+
+export function shouldRenewVoice(details:any,desired:boolean,startedAt:number,now=Date.now()):boolean {
+  return desired&&startedAt>0&&now-startedAt>=60000&&isDurationEnd(details);
+}
+
 export function voiceDisconnectMessage(details: any): string {
   const parts = [details?.message, details?.closeReason,
     typeof details?.context?.type === "string" ? details.context.type : "",
