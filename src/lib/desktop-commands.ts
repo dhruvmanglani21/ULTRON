@@ -1,7 +1,9 @@
-const actions = new Set(["desktop_status","list_apps","open_app","list_windows","focus_window","inspect_window","click_control","type_text","press_shortcut","start_dictation","stop_dictation","list_contacts","draft_whatsapp","send_whatsapp"]);
+import { isPcDiagnosticRequest } from "./diagnostic-request";
+const actions = new Set(["desktop_status","pc_diagnostics","list_apps","open_app","list_windows","focus_window","inspect_window","click_control","type_text","press_shortcut","start_dictation","stop_dictation","list_contacts","draft_whatsapp","send_whatsapp"]);
 export function isDesktopAction(action: string) { return actions.has(action); }
 export function parseDesktopCommand(input: string): Record<string, unknown> | null {
   const text=input.trim().replace(/^(?:hey\s+)?ultron[,.:!]?\s*/i, "");
+  if(isPcDiagnosticRequest(input))return {action:"pc_diagnostics"};
   const open=text.match(/^open\s+(.+)$/i);if(open)return {action:"open_app",text:open[1]};
   if(/^start (?:live )?dictation[.!]?$/i.test(text))return {action:"start_dictation"};
   if(/^stop dictation[.!]?$/i.test(text))return {action:"stop_dictation"};
