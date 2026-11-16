@@ -6,6 +6,7 @@ const {readDraftScript,sendDraftScript}=require('./whatsapp-dom.cjs');
 const {readConfiguredKey,connectionBody}=require('./local-credentials.cjs');
 const configuredKey=readConfiguredKey(__dirname);
 const {runSystemCheck}=require('./system-check.cjs');
+const {buildPcReport}=require('./pc-diagnostics.cjs');
 const ROOT=__dirname;const MAIN_URL=pathToFileURL(path.join(ROOT,'dist','index.html')).href;const MANAGER_URL=pathToFileURL(path.join(ROOT,'manager.html')).href;
 let mainWindow,managerWindow,whatsappWindow,handleVoice,configPath;
 let enabled=false,dictating=false,dictationTarget=null;
@@ -27,8 +28,9 @@ function openManager(){if(managerWindow&&!managerWindow.isDestroyed()){managerWi
 async function confirm(title,message,detail){if(confirmationBusy)throw new Error('Finish the current approval dialog first.');confirmationBusy=true;try{const r=await dialog.showMessageBox(mainWindow,{type:'question',title,message,detail,buttons:['Cancel','Approve'],defaultId:0,cancelId:0,noLink:true});return r.response===1;}finally{confirmationBusy=false;}}
 function native(command){
   if(process.platform!=='win32')return Promise.reject(new Error('PC controls require Windows 11.'));
-  const script=fs.readFileSync(path.join(ROOT,'windows-helper.ps1'),'utf8');
-  return new Promise((resolve,reject)=>{const child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,env:{...process.env,ULTRON_INPUT:Buffer.from(JSON.stringify({...command,blocked_pids:[process.pid]})).toString('base64')},stdio:['ignore','pipe','pipe']});nativeChildren.add(child);child.once('close',()=>nativeChildren.delete(child));let out='',err='';const timer=setTimeout(()=>{child.kill();reject(new Error('The app did not respond to Windows UI Automation. Try focusing it manually.'));},20000);child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8');child.stdout.on('data',d=>{out+=d;if(out.length>1000000){child.kill();reject(new Error('The app returned too much UI data.'));}});child.stderr.on('data',d=>{if(err.length<2000)err+=d;});child.on('error',e=>{clearTimeout(timer);reject(e);});child.on('close',code=>{clearTimeout(timer);try{const data=JSON.parse(out.replace(/^\uFEFF/,'').trim());if(!data.success)reject(new Error(data.error||'Windows action failed.'));else resolve(data);}catch(e){reject(new Error(code===0?'Could not read the Windows automation result.':err.slice(0,300)||e.message));}});});
+  const diagnostic=command.action==='pc_diagnostics';
+  const script=fs.readFileSync(path.join(ROOT,diagnostic?'pc-diagnostics.ps1':'windows-helper.ps1'),'utf8');
+  return new Promise((resolve,reject)=>{const child=spawn('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,env:{...process.env,ULTRON_INPUT:Buffer.from(JSON.stringify({...command,blocked_pids:[process.pid]})).toString('base64')},stdio:['ignore','pipe','pipe']});nativeChildren.add(child);child.once('close',()=>nativeChildren.delete(child));let out='',err='';const timer=setTimeout(()=>{child.kill();reject(new Error(diagnostic?'The PC diagnostic scan timed out. No changes were made. Try again after closing busy apps.':'The app did not respond to Windows UI Automation. Try focusing it manually.'));},diagnostic?45000:20000);child.stdout.setEncoding('utf8');child.stderr.setEncoding('utf8');child.stdout.on('data',d=>{out+=d;if(out.length>1000000){child.kill();reject(new Error('The app returned too much UI data.'));}});child.stderr.on('data',d=>{if(err.length<2000)err+=d;});child.on('error',e=>{clearTimeout(timer);reject(e);});child.on('close',code=>{clearTimeout(timer);try{const data=JSON.parse(out.replace(/^\uFEFF/,'').trim());if(!data.success)reject(new Error(data.error||'Windows action failed.'));else resolve(data);}catch(e){reject(new Error(code===0?'Could not read the Windows automation result.':diagnostic?'Windows could not complete the read-only diagnostic scan. Check Windows PowerShell availability and try again.':err.slice(0,300)||e.message));}});});
 }
 function openWhatsApp(){
   if(whatsappWindow&&!whatsappWindow.isDestroyed()){whatsappWindow.show();whatsappWindow.focus();return whatsappWindow;}
@@ -57,6 +59,7 @@ async function run(command){const c=validateCommand(command);
   if(c.action==='desktop_status')return {success:true,...state()};
   if(c.action==='stop_dictation'){dictating=false;dictationTarget=null;broadcast();return {success:true,message:'Dictation stopped.'};}
   if(!enabled)throw new Error('Enable desktop commands in the Desktop controls window first.');
+  if(c.action==='pc_diagnostics'){const result=await native(c);if(!enabled)throw new Error('Desktop commands were stopped.');return {success:true,report:buildPcReport(result.snapshot)};}
   if(c.action==='list_contacts'){const q=(c.text||'').toLowerCase();return {success:true,contacts:config.contacts.filter(x=>x.name.toLowerCase().includes(q)).map(x=>({id:x.id,name:x.name,phone:'+'+x.phone}))};}
   if(c.action==='start_dictation'){if(!await confirm('Start live dictation?','Dictate into your target app?','After approval, focus an editable field and speak. Dictation is locked to the first target window. Say Ultron stop dictation or press Ctrl+Alt+X to stop.'))return {success:false,message:'Dictation cancelled.'};if(!enabled)throw new Error('Desktop controls were stopped.');dictating=true;dictationTarget=null;broadcast();return {success:true,message:'Dictation armed. Focus an editable field in the target app, then speak. Say Ultron stop dictation or press Ctrl+Alt+X to stop.'};}
   if(c.action==='dictate_text'){

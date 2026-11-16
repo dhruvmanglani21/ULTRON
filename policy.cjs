@@ -1,6 +1,6 @@
 'use strict';
 const SHORTCUTS = new Set(['copy','paste','cut','undo','redo','select_all','find','save','new_tab','close_tab','next_tab','previous_tab','escape','enter']);
-const ACTIONS = new Set(['desktop_status','list_apps','open_app','list_windows','focus_window','inspect_window','click_control','type_text','press_shortcut','start_dictation','stop_dictation','dictate_text','list_contacts','draft_whatsapp','send_whatsapp']);
+const ACTIONS = new Set(['desktop_status','pc_diagnostics','list_apps','open_app','list_windows','focus_window','inspect_window','click_control','type_text','press_shortcut','start_dictation','stop_dictation','dictate_text','list_contacts','draft_whatsapp','send_whatsapp']);
 function text(value, max=5000) { if(typeof value!=='string'||value.length>max)throw new Error('Invalid text value.');return value; }
 function validateCommand(value) {
   if(!value||typeof value!=='object'||Array.isArray(value)||!ACTIONS.has(value.action))throw new Error('Unsupported desktop action.');

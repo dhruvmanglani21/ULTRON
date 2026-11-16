@@ -13,6 +13,7 @@ A Windows 11 voice assistant with a red control interface, a theatrical machine 
 - Phrase-by-phrase dictation into a focused editable field.
 - Local named WhatsApp contacts, QR linking, message drafts and explicit send approval.
 - Notes, timers, focus sessions and three personality settings.
+- **PC diagnostic report:** read-only Windows health findings, possible contributors, suggested next steps, spoken summary and a downloadable full report.
 - **System check:** 23 visible automated results, a beep per result, and “All clear” only when all pass.
 - **Emergency stop:** `Ctrl + Alt + X` disables desktop commands and dictation.
 
@@ -43,6 +44,7 @@ The app must stay open. Close its main window to quit. Desktop commands start di
 | `Find contact Mum` | Searches the contacts you saved in Desktop controls. |
 | `Draft a WhatsApp message to Mum saying I will be home at six` | Prepares a message without sending. |
 | `Send Mum a WhatsApp message saying I will be home at six` | Opens a draft and requests Send approval. |
+| `Ultron, please give PC diagnostic report` | Collects actual Windows health information and reads a summary with suggested fixes. |
 | `System check` | Runs and displays all 23 bundled automated software tests. |
 | `Save a note: submit the report tomorrow` | Saves an app-local note. |
 | `Start a timer for five minutes` | Starts an app-local countdown. |
@@ -68,6 +70,19 @@ The first destination window is locked for that run. Stop and restart dictation 
 5. Before sending, review the visible chat, name, number and exact message. Click **Send message** only if correct.
 
 Use WhatsApp Web in **English** for the current send-button matcher. A changed draft or unavailable Send control stops the action. An uncertain result must be checked in the chat before retrying. Submission does not prove delivery or reading. This project is not affiliated with WhatsApp or Meta.
+
+## PC diagnostic report
+
+1. Enable **PC controls** in the Desktop controls window.
+2. Activate voice and say **“Ultron, please give PC diagnostic report.”** You can also type it or click **PC report** in the header, without a live voice connection.
+3. Wait for the read-only scan (up to 45 seconds). The report shows measured evidence, possible contributors, and suggested next steps. Voice replies read a summary; **Read full report** uses your local Windows/browser voice to read the details.
+4. Use **Refresh report** to take another snapshot, or **Save report** to export a text file. Review exported reports before sharing them.
+
+The report checks CPU load, sampled busy processes, RAM use, local-drive free space, reported physical-drive health, Windows network/firewall status, Defender/registered antivirus status, System/Application critical/error events from the past 24 hours, known restart flags, startup-entry count, and battery level where present. Windows version and uptime are also shown. No administrator elevation is requested; unavailable or denied checks are marked incomplete.
+
+This is separate from **system check**, which still runs the original 23 ULTRON software tests. The PC report does not run a malware scan, surface/SMART test, temperature test, battery-wear test, network speed test, or an available-Windows-update scan. A snapshot cannot prove a root cause. High resource use and past event-log entries are reported as observations, not proof that a particular app or driver is broken.
+
+The report does **not** change settings, close apps, delete files, apply updates, or perform repairs. It does not collect usernames, hostnames, IP addresses, Wi-Fi names, personal file contents, process command lines, disk serial numbers, raw event messages, or browser history. The detailed report stays local unless you save/share it. During a live ElevenLabs session, its measured spoken summary is sent for the reply; **Read full report** reads locally. Stop dictation before requesting diagnostics.
 
 ## System check and beeps
 
@@ -116,6 +131,7 @@ Do not disable Windows security protections to run this app. It uses normal user
 npm ci
 npm run build
 npm test
+npm run test:diagnostics
 npm start
 ```
 
@@ -128,6 +144,8 @@ npm start
 | `windows-helper.ps1` | Windows accessibility controls and text input. |
 | `src/app/page.tsx` | Red interface, voice flow and system-check panel. |
 | `src/voice-api.ts` | Private desktop-agent setup and ElevenLabs diagnostics. |
+| `pc-diagnostics.ps1` / `pc-diagnostics.cjs` | Read-only Windows collection and evidence-based report generation. |
+| `diagnostic-tests/` | Eight additional diagnostic-report tests, separate from the 23-test system check. |
 | `system-check.cjs` / `tests/` | Visible test runner and 23-test suite. |
 | `bootstrap.cjs` / `Start_ULTRON.cmd` | Windows launch and verified runtime download. |
 | `dist/` | Prebuilt app so ordinary users can start without npm installation. |
