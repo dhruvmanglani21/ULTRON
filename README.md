@@ -155,3 +155,15 @@ If you add/remove tests, update the expected count and UI labels in the system-c
 ## License and credits
 
 Original project code is [MIT licensed](LICENSE). Third-party licenses remain applicable; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Built with Electron, React and the ElevenLabs JavaScript client. U.L.T.R.O.N. is a fan-inspired project and is not affiliated with Marvel, Disney, ElevenLabs, Microsoft, WhatsApp or Meta.
+
+## Continuous voice and allowance
+
+The old five-minute call cap, 40-second silence hang-up, 30-call daily setting, one-call agent concurrency setting and 350-token reply cap are removed. Existing ULTRON Desktop agents are migrated when voice starts, so reconnecting to an older agent does not retain those settings.
+
+ElevenLabs currently requires a per-call maximum between 60 and 7,200 seconds. ULTRON uses the provider-supported maximum and automatically starts a new provider call when a confirmed duration-ended active call finishes. There may be a brief audio gap; recent transcript context is supplied to the new call. This is renewal, not an unlimited-length single provider conversation. Manual End session/cancel stops renewal. Quota, authentication, permission and network failures remain visible and are not retried indefinitely.
+
+Silence disconnection is disabled. Agent concurrency uses the provider's unlimited sentinel, while the former custom 30-call budget is reset to ElevenLabs' documented default of 100,000 conversations/day. No application-side daily counter or credit cutoff is enforced. ElevenLabs may still apply account, daily, concurrency and other service limits; ULTRON cannot remove them or promise to stop only when a key expires. Burst overage is not enabled.
+
+Configuration displays the subscription credit/character allowance reported by ElevenLabs, refreshed approximately every minute while connected. This is not a conversion to remaining voice minutes and may differ from per-key restrictions or unsettled call usage. If a restricted key cannot read the balance, enable User read to display it; missing balance permission does not block voice. No billing settings are changed, and the balance display does not impose its own cutoff. Encrypted credentials renew as active sessions request new connection credentials.
+
+Run `npm run test:continuous` for policy migration, balance formatting and renewal-condition tests. The original 23-test system check remains unchanged.
