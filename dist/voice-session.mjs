@@ -8,6 +8,14 @@ function voiceErrorMessage(error) {
   if (/credit|quota|payment|subscription|concurrency/i.test(safe)) return `ElevenLabs could not run the live call: ${safe}`;
   return safe || "The live voice link closed unexpectedly.";
 }
+function isDurationEnd(details) {
+  const text = [details?.message, details?.closeReason, details?.context?.type].filter((x) => typeof x === "string").join(" ");
+  if (/quota|credit|payment|subscription|permission|unauthori[sz]ed|invalid.*key/i.test(text)) return false;
+  return /max(?:imum)?[_ -]?(?:conversation[_ -]?)?duration|duration[_ -]exceeded|conversation has exceeded maximum duration/i.test(text);
+}
+function shouldRenewVoice(details, desired, startedAt, now = Date.now()) {
+  return desired && startedAt > 0 && now - startedAt >= 6e4 && isDurationEnd(details);
+}
 function voiceDisconnectMessage(details) {
   const parts = [
     details?.message,
@@ -104,8 +112,10 @@ async function ensureMicrophone(getMedia, signal, timeoutMs = 2e4) {
 }
 export {
   ensureMicrophone,
+  isDurationEnd,
   openVoiceSession,
   resumeSpeakerAudio,
+  shouldRenewVoice,
   voiceDisconnectMessage,
   voiceErrorMessage
 };
