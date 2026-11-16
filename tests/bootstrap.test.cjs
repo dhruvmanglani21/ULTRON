@@ -20,7 +20,7 @@ test('launcher uses prebuilt app without npm and records startup errors',()=>{
 });
 
 test('Windows helper commands use PowerShell environment-variable syntax',()=>{
- for(const name of ['bootstrap.cjs','windows-helper.ps1']){
+ for(const name of ['bootstrap.cjs','windows-helper.ps1','pc-diagnostics.ps1']){
   const source=fs.readFileSync(path.join(__dirname,'..',name),'utf8');
   assert.doesNotMatch(source,/\$env\./,name+' contains invalid PowerShell environment syntax');
  }
