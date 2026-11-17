@@ -31,6 +31,21 @@ export function providerDiagnostic(data: any, key: string) {
     .replace(/[\r\n\t<>]/g, " ").slice(0, 350);
   return { code: code === key || code.includes(key) ? "request_rejected" : code, message };
 }
+// Conversation failures use metadata.error.reason/code, unlike HTTP errors.
+export function callDiagnostic(call: any, key: string, summary: any = {}) {
+  const clean = (value: unknown) => typeof value === "string" ? providerDiagnostic({detail:{message:value}}, key).message.trim() : "";
+  const failure = call?.metadata?.error ?? call?.error;
+  const reasons = [failure?.reason, failure?.message, typeof failure === "string" ? failure : undefined, call?.metadata?.termination_reason, call?.termination_reason].map(clean).filter(Boolean);
+  const reason = [...new Set(reasons)].join("; ");
+  const rawCode = failure?.code;
+  const code = typeof rawCode === "number" && Number.isFinite(rawCode) ? String(rawCode) : typeof rawCode === "string" && /^[a-zA-Z0-9_.-]{1,80}$/.test(rawCode) ? clean(rawCode) : "";
+  const status = typeof call?.status === "string" && /^[a-z-]{1,30}$/.test(call.status) ? call.status : "unknown";
+  const rawCount = call?.agent_message_count ?? summary?.agent_message_count;
+  const count = Number.isSafeInteger(rawCount) && rawCount >= 0 ? rawCount : Array.isArray(call?.transcript) ? call.transcript.filter((item: any) => item?.role === "agent" && typeof item.message === "string" && item.message.trim()).length : null;
+  const callId = typeof call?.conversation_id === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(call.conversation_id) ? clean(call.conversation_id) : "";
+  const fallback = status === "processing" ? " Error details may still be processing. Check again shortly." : status === "failed" ? " ElevenLabs supplied no failure reason. Open this call in ElevenLabs Agents → Call history for details." : "";
+  return `Latest ElevenLabs call: ${status}.${count !== null ? ` Agent replies: ${count}.` : ""}${reason ? ` Reason: ${reason}` : fallback}${code ? ` Error code: ${code}.` : ""}${callId ? ` Call ID: ${callId}.` : ""}`;
+}
 function b64(bytes: Uint8Array) { return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", ""); }
 function unb64(value: string) { return Uint8Array.from(atob(value.replaceAll("-", "+").replaceAll("_", "/")), c => c.charCodeAt(0)); }
 async function cryptoKey(secret: string) {
@@ -174,15 +189,12 @@ export async function handleUltron(request: Request, env: RuntimeEnv): Promise<R
       const data = await provider("/convai/conversations?agent_id=" + encodeURIComponent(valid.agentId) + "&page_size=1", valid.key);
       let call = Array.isArray(data.conversations) ? data.conversations[0] : null;
       if (!call) return json({ diagnostic: "ElevenLabs has no recorded call for this agent yet. The live link may be failing before the agent starts." });
+      const summary = call;
       if (typeof call.conversation_id === "string" && /^[a-zA-Z0-9_-]{1,100}$/.test(call.conversation_id)) {
         call = await provider("/convai/conversations/" + encodeURIComponent(call.conversation_id), valid.key);
         if (call.agent_id !== valid.agentId) throw new ApiError("The returned call does not belong to this ULTRON agent.", 502);
       }
-      const rawReason = call.metadata?.termination_reason || call.termination_reason;
-      const reason = typeof rawReason === "string" ? providerDiagnostic({detail:{message:rawReason}}, valid.key).message : "";
-      const status = typeof call.status === "string" && /^[a-z-]{1,30}$/.test(call.status) ? call.status : "unknown";
-      const count = typeof call.agent_message_count === "number" ? ` Agent replies: ${call.agent_message_count}.` : "";
-      return json({ diagnostic: `Latest ElevenLabs call: ${status}.${count}${reason ? ` Reason: ${reason}` : ""}` });
+      return json({ diagnostic: callDiagnostic(call, valid.key, summary) });
     }
     if (path === "/api/ultron/connect") {
       const key = typeof body.apiKey === "string" ? body.apiKey.trim() : "";
