@@ -115,7 +115,7 @@ The Electron main process connects directly to ElevenLabs. Session credentials a
 | Launcher exits | Read `ULTRON-startup.log` next to the launcher. Remove private details before sharing logs. |
 | `ENOSPC` | Free space on the Windows drive used by `%LOCALAPPDATA%`, then retry. |
 | Runtime download fails | Check internet access to GitHub release downloads. The runtime checksum is verified before use. |
-| Key connects but voice closes | Try WebSocket mode and **Configuration → Check last voice call**. Review the actual provider reason, permissions and allowance. |
+| Key connects but voice closes | Try WebSocket mode and **Configuration → Check last voice call**. Diagnostics show the provider's `metadata.error.reason`, error code, termination reason and call ID when available. If the call is still processing, check again shortly. If no reason is supplied, open the matching call in ElevenLabs Agents → Call history. A failed call with zero replies alone does not establish a credit problem. |
 | No microphone | Check Windows **Privacy & security → Microphone** and device selection. |
 | No speaker audio | Use **Test speaker (tone)**, check Windows volume and use **Enable speaker**. |
 | PC commands disabled | Click the large bottom button in Desktop controls, or use `Ctrl + Alt + E` there. |
